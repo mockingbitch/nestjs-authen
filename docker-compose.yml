@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  app:
+    build: ./.docker/app
+    restart: always
+    hostname: app
+    env_file:
+      - ./app/.env
+    networks:
+      - backend
+    links:
+      - database
+    volumes:
+      - "./app:/var/www/app"
+    ports:
+      - 3000:3000
+    depends_on:
+      - database
+
+  database:
+    build: ./.docker/database
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: "password"
+      MARIADB_USER: "user"
+      MARIADB_PASSWORD: "password"
+    volumes:
+      - "./db/data/db-files:/data/db"
+      - "./db/init/:/docker-entrypoint-initdb.d/"
+    ports:
+      - 3300:3306
+    networks:
+      - backend
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+networks:
+  backend:
+    driver: bridge
